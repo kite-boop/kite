@@ -4,6 +4,7 @@ import sqlite3
 import threading
 from datetime import datetime
 from collections import deque, defaultdict
+import pytz
 
 from kiteconnect import KiteConnect, KiteTicker
 
@@ -14,15 +15,19 @@ ACCESS_TOKEN = os.environ["KITE_ACCESS_TOKEN"]
 # Tokens to subscribe (only NSE instrument tokens)
 TOKENS = [
     738561,  # RELIANCE
-    # Add more tokens as needed
+    # Add more tokens here
 ]
 
-# Rolling window for averaging (20 seconds)
-ROLLING_WINDOW = 20
-SAVE_INTERVAL = 20  # seconds
+ROLLING_WINDOW = 20  # last 20 seconds
+SAVE_INTERVAL = 20   # save to DB every 20 seconds
+
+# IST timezone
+IST = pytz.timezone("Asia/Kolkata")
+MARKET_CLOSE_HOUR = 15
+MARKET_CLOSE_MINUTE = 30
 
 # Daily DB file
-TODAY = datetime.now().strftime("%Y-%m-%d")
+TODAY = datetime.now(IST).strftime("%Y-%m-%d")
 DB_FILE = f"kite_{TODAY}.db"
 
 # ================= IN-MEMORY STORE =================
@@ -50,7 +55,7 @@ def save_to_db(token, ltp, volume, avg_buy, avg_sell):
             avg_sell_qty REAL
         )
     """)
-    ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    ts = datetime.now(IST).strftime("%Y-%m-%d %H:%M:%S")
     c.execute(
         f"INSERT INTO {table_name} VALUES (?, ?, ?, ?, ?)",
         (ts, ltp, volume, avg_buy, avg_sell)
@@ -114,11 +119,26 @@ def periodic_save():
             print(f"SAVED | Token={token} | LTP={data['ltp']} | AvgBuy={avg_buy} | AvgSell={avg_sell}")
 # ================================================
 
+# ================= MARKET HOURS CHECK =================
+def market_open():
+    now = datetime.now(IST)
+    return now.weekday() < 5 and (now.hour > 9 or (now.hour == 9 and now.minute >= 15))
+
+def market_closed():
+    now = datetime.now(IST)
+    return now.hour > MARKET_CLOSE_HOUR or (now.hour == MARKET_CLOSE_HOUR and now.minute >= MARKET_CLOSE_MINUTE)
+# ================================================
+
 # ================= MAIN =================
 if __name__ == "__main__":
     print("📊 Starting Kite WebSocket Collector")
+    if not market_open():
+        print("⛔ Market not open yet. Exiting...")
+        exit()
+
     kite = KiteConnect(api_key=API_KEY)
     kite.set_access_token(ACCESS_TOKEN)
+
     kws = KiteTicker(API_KEY, ACCESS_TOKEN)
     setup_callbacks(kws)
 
@@ -127,8 +147,14 @@ if __name__ == "__main__":
 
     try:
         while True:
+            if market_closed():
+                print("⏰ Market closed. Stopping collector...")
+                kws.close()
+                break
+
             periodic_save()
             time.sleep(1)
+
     except KeyboardInterrupt:
         print("🛑 Stopped manually")
         kws.close()
