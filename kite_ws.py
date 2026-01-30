@@ -142,6 +142,19 @@ def market_closed():
 if __name__ == "__main__":
     print("📊 Starting Kite WebSocket Collector")
     if not market_open():
+        try:
+            kite = KiteConnect(api_key=API_KEY)
+            kite.set_access_token(ACCESS_TOKEN)
+        
+            # Simple call to verify authentication
+            profile = kite.profile()
+            print("✅ Authentication successful!")
+            print("User:", profile.get("user_name"))
+            print("User type:", profile.get("user_type"))
+            
+        except Exception as e:
+            print("❌ Authentication failed:", e)
+            
         print("⛔ Market not open yet. Exiting...")
         exit()
 
