@@ -20,7 +20,7 @@ TOKENS = [
     # Add more tokens here
 ]
 # Load tokens from your existing DB
-df = my.load_table_as_df("tickers.db", "main_table", ["symbol", "nse_instrument_token"])
+df = my.load_table_as_df("tikers.db", "main_table", ["symbol", "nse_instrument_token"])
 
 # Correct way to get a list
 TOKENS = df["nse_instrument_token"].tolist()  # note: .tolist() is a function
