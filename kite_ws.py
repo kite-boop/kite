@@ -24,7 +24,7 @@ df = my.get.load_table_as_df("tickers.db", "main_table", ["symbol", "nse_instrum
 
 # Correct way to get a list
 TOKENS = df["nse_instrument_token"].tolist()  # note: .tolist() is a function
-print("LOADED TOKENS :"len(TOKENS))
+print("LOADED TOKENS :",len(TOKENS))
                        
 ROLLING_WINDOW = 20  # last 20 seconds
 SAVE_INTERVAL = 20   # save to DB every 20 seconds
@@ -78,7 +78,7 @@ def setup_callbacks(kws):
         print("✅ WS connected, subscribing...")
         ws.subscribe(TOKENS)
         ws.set_mode(ws.MODE_FULL, TOKENS)
-        print("SUSCRIBED TOKENS :"len(TOKENS))
+        print("SUSCRIBED TOKENS :",len(TOKENS))
 
     def on_ticks(ws, ticks):
         with lock:
