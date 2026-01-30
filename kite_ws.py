@@ -1,4 +1,4 @@
-#kite_ws
+# kite_ws1.py
 import os
 import time
 import sqlite3
@@ -7,36 +7,27 @@ from datetime import datetime
 from collections import deque, defaultdict
 import pytz
 import my_helpers as my
-
 from kiteconnect import KiteConnect, KiteTicker
 
 # ================= CONFIG =================
 API_KEY = os.environ["KITE_API_KEY"]
 ACCESS_TOKEN = os.environ["KITE_ACCESS_TOKEN"]
 
-# Tokens to subscribe (only NSE instrument tokens)
-TOKENS = [
-    738561,  # RELIANCE
-    # Add more tokens here
-]
-# Load tokens from your existing DB
+# Load tokens and symbols from DB
 df = my.load_table_as_df("tikers.db", "main_table", ["symbol", "nse_instrument_token"])
+TOKENS = df["nse_instrument_token"].tolist()
+print("LOADED TOKENS:", len(TOKENS))
 
-# Correct way to get a list
-TOKENS = df["nse_instrument_token"].tolist()  # note: .tolist() is a function
-print("LOADED TOKENS :",len(TOKENS))
-                       
-ROLLING_WINDOW = 20  # last 20 seconds
-SAVE_INTERVAL = 20   # save to DB every 20 seconds
+# Mapping: token -> symbol
+token_to_symbol = dict(zip(df["nse_instrument_token"], df["symbol"]))
 
-# IST timezone
+ROLLING_WINDOW = 20
+SAVE_INTERVAL = 20
 IST = pytz.timezone("Asia/Kolkata")
-MARKET_CLOSE_HOUR = 15
-MARKET_CLOSE_MINUTE = 30
 
-# Daily DB file
+# DB file for first half
 TODAY = datetime.now(IST).strftime("%Y-%m-%d")
-DB_FILE = f"kite_{TODAY}.db"
+DB_FILE = f"kite_{TODAY}_1.db"
 
 # ================= IN-MEMORY STORE =================
 tick_store = defaultdict(lambda: {
@@ -47,13 +38,13 @@ tick_store = defaultdict(lambda: {
 })
 lock = threading.Lock()
 last_save_time = time.time()
-# ================================================
 
-# ================= DATABASE =================
+# ================= DATABASE SAVE =================
 def save_to_db(token, ltp, volume, avg_buy, avg_sell):
+    symbol = token_to_symbol.get(token, f"stock_{token}")
+    table_name = symbol.replace(" ", "_").replace("-", "_")  # SQLite safe name
     conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
-    table_name = f"stock_{token}"
     c.execute(f"""
         CREATE TABLE IF NOT EXISTS {table_name} (
             timestamp TEXT,
@@ -70,7 +61,6 @@ def save_to_db(token, ltp, volume, avg_buy, avg_sell):
     )
     conn.commit()
     conn.close()
-# ================================================
 
 # ================= CALLBACKS =================
 def setup_callbacks(kws):
@@ -78,14 +68,11 @@ def setup_callbacks(kws):
         print("✅ WS connected, subscribing...")
         ws.subscribe(TOKENS)
         ws.set_mode(ws.MODE_FULL, TOKENS)
-        print("SUSCRIBED TOKENS :",len(TOKENS))
 
     def on_ticks(ws, ticks):
         with lock:
             for t in ticks:
                 token = t["instrument_token"]
-                if token not in TOKENS:
-                    continue
                 store = tick_store[token]
                 store["ltp"] = t.get("last_price", 0.0)
                 store["volume"] = t.get("volume_traded", 0)
@@ -102,7 +89,6 @@ def setup_callbacks(kws):
     kws.on_ticks = on_ticks
     kws.on_close = on_close
     kws.on_error = on_error
-# ================================================
 
 # ================= PERIODIC SAVE =================
 def periodic_save():
@@ -118,65 +104,34 @@ def periodic_save():
                 continue
             avg_buy = round(sum(data["buy_qty"]) / len(data["buy_qty"]), 2) if data["buy_qty"] else 0
             avg_sell = round(sum(data["sell_qty"]) / len(data["sell_qty"]), 2) if data["sell_qty"] else 0
-            save_to_db(
-                token,
-                data["ltp"],
-                data["volume"],
-                avg_buy,
-                avg_sell
-            )
-            print(f"SAVED | Token={token} | LTP={data['ltp']} | AvgBuy={avg_buy} | AvgSell={avg_sell}")
-# ================================================
+            save_to_db(token, data["ltp"], data["volume"], avg_buy, avg_sell)
+            print(f"SAVED | {token_to_symbol[token]} | LTP={data['ltp']} | AvgBuy={avg_buy} | AvgSell={avg_sell}")
 
-# ================= MARKET HOURS CHECK =================
-def market_open():
+# ================= SAVE WINDOW CHECK =================
+def is_save_time():
     now = datetime.now(IST)
-    return now.weekday() < 5 and (now.hour > 9 or (now.hour == 9 and now.minute >= 15))
-
-def market_closed():
-    now = datetime.now(IST)
-    return now.hour > MARKET_CLOSE_HOUR or (now.hour == MARKET_CLOSE_HOUR and now.minute >= MARKET_CLOSE_MINUTE)
-# ================================================
+    start = now.replace(hour=9, minute=15, second=0, microsecond=0)
+    end = now.replace(hour=12, minute=0, second=0, microsecond=0)
+    return start <= now < end
 
 # ================= MAIN =================
 if __name__ == "__main__":
-    print("📊 Starting Kite WebSocket Collector")
-    if not market_open():
-        try:
-            kite = KiteConnect(api_key=API_KEY)
-            kite.set_access_token(ACCESS_TOKEN)
-        
-            # Simple call to verify authentication
-            profile = kite.profile()
-            print("✅ Authentication successful!")
-            print("User:", profile.get("user_name"))
-            print("User type:", profile.get("user_type"))
-            
-        except Exception as e:
-            print("❌ Authentication failed:", e)
-            
-        print("⛔ Market not open yet. Exiting...")
-        exit()
-
+    print("📊 Starting Kite WebSocket Collector (First Half)")
     kite = KiteConnect(api_key=API_KEY)
     kite.set_access_token(ACCESS_TOKEN)
-
     kws = KiteTicker(API_KEY, ACCESS_TOKEN)
     setup_callbacks(kws)
-
     kws.connect(threaded=True)
     print("🚀 WebSocket thread started")
 
     try:
         while True:
-            if market_closed():
-                print("⏰ Market closed. Stopping collector...")
+            if not is_save_time():
+                print("⏰ First half window ended. Exiting...")
                 kws.close()
                 break
-
             periodic_save()
             time.sleep(1)
-
     except KeyboardInterrupt:
         print("🛑 Stopped manually")
         kws.close()
