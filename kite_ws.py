@@ -6,6 +6,7 @@ import threading
 from datetime import datetime
 from collections import deque, defaultdict
 import pytz
+import my_herlpers as my
 
 from kiteconnect import KiteConnect, KiteTicker
 
@@ -18,7 +19,13 @@ TOKENS = [
     738561,  # RELIANCE
     # Add more tokens here
 ]
+# Load tokens from your existing DB
+df = my.get.load_table_as_df("tickers.db", "main_table", ["symbol", "nse_instrument_token"])
 
+# Correct way to get a list
+TOKENS = df["nse_instrument_token"].tolist()  # note: .tolist() is a function
+print("LOADED TOKENS :"len(TOKENS))
+                       
 ROLLING_WINDOW = 20  # last 20 seconds
 SAVE_INTERVAL = 20   # save to DB every 20 seconds
 
@@ -71,6 +78,7 @@ def setup_callbacks(kws):
         print("✅ WS connected, subscribing...")
         ws.subscribe(TOKENS)
         ws.set_mode(ws.MODE_FULL, TOKENS)
+        print("SUSCRIBED TOKENS :"len(TOKENS))
 
     def on_ticks(ws, ticks):
         with lock:
