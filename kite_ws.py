@@ -6,7 +6,7 @@ import threading
 from datetime import datetime
 from collections import deque, defaultdict
 import pytz
-import my_herlpers as my
+import my_helpers as my
 
 from kiteconnect import KiteConnect, KiteTicker
 
@@ -20,7 +20,7 @@ TOKENS = [
     # Add more tokens here
 ]
 # Load tokens from your existing DB
-df = my.get.load_table_as_df("tickers.db", "main_table", ["symbol", "nse_instrument_token"])
+df = my.load_table_as_df("tickers.db", "main_table", ["symbol", "nse_instrument_token"])
 
 # Correct way to get a list
 TOKENS = df["nse_instrument_token"].tolist()  # note: .tolist() is a function
