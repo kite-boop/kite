@@ -118,7 +118,7 @@ def is_save_time():
 
 # ================= MAIN =================
 if __name__ == "__main__":
-    print("📊 Starting Kite WebSocket Collector (First Half)")
+    print("📊 Starting Kite WebSocket Collector (Continuous)")
     kite = KiteConnect(api_key=API_KEY)
     kite.set_access_token(ACCESS_TOKEN)
     kws = KiteTicker(API_KEY, ACCESS_TOKEN)
@@ -131,12 +131,16 @@ if __name__ == "__main__":
 
     try:
         while True:
-            if not is_save_time():
-                print("⏰ second half window ended. Exiting...")
-                kws.close()
-                break
-            periodic_save()
+            # Only save to DB during market hours
+            if is_save_time():
+                periodic_save()
+            else:
+                # Outside market hours, we can optionally print or just sleep
+                print("⏰ second half Waiting for market hours...")
+                time.sleep(60)
+                pass
             time.sleep(1)
     except KeyboardInterrupt:
         print("🛑 Stopped manually")
         kws.close()
+
