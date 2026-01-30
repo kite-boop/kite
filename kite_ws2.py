@@ -125,11 +125,14 @@ if __name__ == "__main__":
     setup_callbacks(kws)
     kws.connect(threaded=True)
     print("🚀 WebSocket thread started")
+    profile = kite.profile()
+    print("User:", profile.get("user_name"))
+    print("User type:", profile.get("user_type"))
 
     try:
         while True:
             if not is_save_time():
-                print("⏰ First half window ended. Exiting...")
+                print("⏰ second half window ended. Exiting...")
                 kws.close()
                 break
             periodic_save()
