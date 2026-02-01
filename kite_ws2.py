@@ -11,7 +11,7 @@ from kiteconnect import KiteConnect, KiteTicker
 
 # ================= CONFIG =================
 API_KEY = os.environ["KITE_API_KEY"]
-ACCESS_TOKEN = os.environ["KITE_ACCESS_TOKEN"]
+ACCESS_TOKEN = "Y5mr2m27hWHaAlU3YFWF5hVoeiYB8fRM"
 
 ROLLING_WINDOW = 20
 SAVE_INTERVAL = 20  # seconds
