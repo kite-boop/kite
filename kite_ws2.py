@@ -87,22 +87,21 @@ def save_to_db_batch(force=False):
                 if data["sell_qty"] else 0
             )
 
-            table = token_to_symbol.get(token, f"stock_{token}")
-            table = table.replace(" ", "_").replace("-", "_")
+            table_name = token_to_symbol[token]
+            ts = datetime.now(IST).strftime("%Y-%m-%d %H:%M:%S")
 
-            c.execute(f"""
-                CREATE TABLE IF NOT EXISTS {table} (
+            c.execute(f'''
+                CREATE TABLE IF NOT EXISTS "{table_name}" (
                     timestamp TEXT,
                     ltp REAL,
                     volume INTEGER,
                     avg_buy_qty REAL,
                     avg_sell_qty REAL
                 )
-            """)
+            ''')
 
-            ts = datetime.now(IST).strftime("%Y-%m-%d %H:%M:%S")
             c.execute(
-                f"INSERT INTO {table} VALUES (?, ?, ?, ?, ?)",
+                f'INSERT INTO "{table_name}" VALUES (?, ?, ?, ?, ?)',
                 (ts, data["ltp"], data["volume"], avg_buy, avg_sell)
             )
 
