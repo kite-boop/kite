@@ -1,0 +1,36 @@
+name: Kite Live Collector
+
+on:
+  workflow_dispatch:
+
+jobs:
+  live_ticks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install kiteconnect pytz pandas
+
+      - name: Run live WS collector
+        env:
+          KITE_API_KEY: ${{ secrets.KITE_API_KEY }}
+        run: |
+          python kite_manual.py
+
+      - name: Upload DB artifact (always)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kite-db-${{ github.run_id }}
+          path: |
+            *.db
