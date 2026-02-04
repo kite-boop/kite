@@ -1,4 +1,4 @@
-name: Kite Live Collector
+name: Kite Manual Collector
 
 on:
   workflow_dispatch:
@@ -6,10 +6,10 @@ on:
 jobs:
   live_ticks:
     runs-on: ubuntu-latest
-    timeout-minutes: 360
+    timeout-minutes: 350   # slightly > 5.5 hours
 
     steps:
-      - name: Checkout repo
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Setup Python
@@ -21,7 +21,7 @@ jobs:
         run: |
           pip install kiteconnect pytz pandas
 
-      - name: Run live WS collector
+      - name: Run Kite WS collector
         env:
           KITE_API_KEY: ${{ secrets.KITE_API_KEY }}
         run: |
@@ -32,5 +32,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: kite-db-${{ github.run_id }}
-          path: |
-            *.db
+          path: "*.db"
