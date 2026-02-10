@@ -15,7 +15,7 @@ from kiteconnect import KiteConnect, KiteTicker
 API_KEY = os.environ["KITE_API_KEY"]
 
 # ⚠️ PUT TODAY'S ACCESS TOKEN HERE
-ACCESS_TOKEN = "zmxErhY3f95I2XmNdjf2yJcaQoBejUFJ"
+ACCESS_TOKEN = "GzLGAEkZDjIJ3uo4xP0KZtemwHkxkCd7"
 
 MAX_RUNTIME = 5.5 * 60 * 60   # backup safety (seconds)
 ROLLING_WINDOW = 20
