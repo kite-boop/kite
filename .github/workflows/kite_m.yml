@@ -6,7 +6,7 @@ on:
 jobs:
   live_ticks:
     runs-on: ubuntu-latest
-    timeout-minutes: 350   # slightly > 5.5 hours
+    timeout-minutes: 360   
 
     steps:
       - name: Checkout repository
