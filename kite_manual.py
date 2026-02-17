@@ -19,7 +19,7 @@ ACCESS_TOKEN = os.environ["KITE_ACCESS_TOKEN"]
 
 MAX_RUNTIME = 5.5 * 60 * 60   # backup safety (seconds)
 ROLLING_WINDOW = 10
-SAVE_INTERVAL = 20           # seconds
+SAVE_INTERVAL = 10           # seconds
 
 IST = pytz.timezone("Asia/Kolkata")
 START_TIME = time.time()
