@@ -9,7 +9,7 @@ from datetime import datetime, time as dtime
 from collections import deque, defaultdict
 
 import pytz
-import my_herlpers as my
+import my_helpers as my
 from kiteconnect import KiteConnect, KiteTicker
 
 # ================= CONFIG =================
